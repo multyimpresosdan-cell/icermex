@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sesión en Vivo - Certificación Masaje Sueco</title>
+    <style>
+        /* Reset y base */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background-color: #f4f7f9; /* Fondo claro y amigable */
+            color: #333;
+            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Contenedor principal */
+        .meeting-container {
+            max-width: 1000px;
+            width: 100%;
+            background: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(14, 124, 134, 0.15);
+            border: 1px solid #e0e0e0;
+            position: relative;
+        }
+
+        /* Cabecera: Logo + Estado en vivo + Espectadores */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 25px;
+            background: #f0fdfa; /* Fondo teal muy claro */
+            border-bottom: 2px solid #0e7c86;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header-left img {
+            max-height: 45px;
+            width: auto;
+        }
+
+        .live-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #ffffff;
+            padding: 5px 12px;
+            border-radius: 20px;
+            border: 1px solid #0e7c86;
+            font-size: 13px;
+            font-weight: bold;
+            color: #0e7c86;
+        }
+
+        .live-dot {
+            width: 10px;
+            height: 10px;
+            background-color: #e74c3c;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .viewers-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #ffffff;
+            padding: 6px 16px;
+            border-radius: 40px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .viewers-badge .eye { font-size: 16px; }
+        .viewers-badge .count { color: #0e7c86; font-weight: bold; }
+
+        /* Área de video */
+        .video-wrapper {
+            position: relative;
+            background: #000;
+            aspect-ratio: 16 / 9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .video-wrapper video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+            display: block;
+        }
+
+        /* Overlay de "Unirme" */
+        .join-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(14, 124, 134, 0.85); /* Fondo teal semitransparente */
+            backdrop-filter: blur(5px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            transition: opacity 0.5s ease;
+        }
+
+        .join-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .join-overlay .join-btn {
+            background: #ffffff;
+            color: #0e7c86;
+            border: none;
+            font-size: 22px;
+            font-weight: 700;
+            padding: 18px 45px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .join-overlay .join-btn:hover {
+            background: #f0fdfa;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+        }
+
+        .join-overlay .sub-join {
+            margin-top: 15px;
+            color: #ffffff;
+            font-size: 15px;
+            opacity: 0.9;
+        }
+
+        /* Overlay de Llamado a la Acción (CTA) - Minuto 13:12 */
+        .cta-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(8px);
+            display: none; /* Se activa por JS */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 30;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .cta-overlay h2 {
+            color: #ffffff;
+            font-size: 32px;
+            margin-bottom: 15px;
+        }
+
+        .cta-overlay p {
+            color: #cccccc;
+            font-size: 18px;
+            margin-bottom: 35px;
+            max-width: 600px;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn-cta-primary {
+            background-color: #0e7c86;
+            color: #ffffff;
+            padding: 16px 35px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: bold;
+            transition: 0.2s;
+            border: 2px solid #0e7c86;
+        }
+
+        .btn-cta-primary:hover {
+            background-color: #0b5e66;
+            border-color: #0b5e66;
+        }
+
+        .btn-cta-secondary {
+            background-color: transparent;
+            color: #ffffff;
+            padding: 16px 35px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: bold;
+            border: 2px solid #ffffff;
+            transition: 0.2s;
+        }
+
+        .btn-cta-secondary:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+
+        /* Pie de página */
+        .footer-note {
+            padding: 15px;
+            background: #fafafa;
+            border-top: 1px solid #eeeeee;
+            text-align: center;
+            color: #888;
+            font-size: 13px;
+        }
+
+        /* Responsivo */
+        @media (max-width: 700px) {
+            .header { flex-direction: column; gap: 10px; }
+            .header-left { flex-direction: column; gap: 10px; }
+            .join-overlay .join-btn { font-size: 18px; padding: 14px 30px; }
+            .cta-overlay h2 { font-size: 24px; }
+            .cta-overlay p { font-size: 16px; }
+            .cta-buttons { flex-direction: column; width: 100%; }
+            .btn-cta-primary, .btn-cta-secondary { width: 100%; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="meeting-container">
+        <!-- CABECERA -->
+        <div class="header">
+            <div class="header-left">
+                <!-- Logo de ICERMEX -->
+                <img src="https://storage.googleapis.com/funnel-ai-production/image-generation/VznavX09KpvBJgolGTCj/mirrored-sQgb2QOF4-.png" alt="ICERMEX">
+                <div class="live-status">
+                    <span class="live-dot"></span> EN VIVO
+                </div>
+            </div>
+            <div class="viewers-badge">
+                <span class="eye">👁</span>
+                <span class="count" id="viewerCount">130</span>
+                <span>espectadores</span>
+            </div>
+        </div>
+
+        <!-- ÁREA DE VIDEO -->
+        <div class="video-wrapper">
+            <!-- Video del Seminario -->
+            <video id="seminarVideo" playsinline muted>
+                <source src="https://assets.cdn.filesafe.space/VznavX09KpvBJgolGTCj/media/6abae2047ef452865a2dfd11.mp4" type="video/mp4" />
+                Tu navegador no soporta video HTML5.
+            </video>
+
+            <!-- Overlay para Unirse -->
+            <div class="join-overlay" id="joinOverlay">
+                <button class="join-btn" id="joinBtn">
+                    ▶️ Unirme a la sesión
+                </button>
+                <div class="sub-join">Haz clic para activar el sonido y comenzar</div>
+            </div>
+
+            <!-- Overlay de Llamado a la Acción (Aparece en 13:12) -->
+            <div class="cta-overlay" id="ctaOverlay">
+                <h2>¿Estás listo para el siguiente paso?</h2>
+                <p>Si todo quedó claro, elige cómo quieres continuar tu proceso de certificación en Masaje Sueco (EC0901).</p>
+                <div class="cta-buttons">
+                    <!-- Reemplaza {{link_pago}} con tu enlace real de pago -->
+                    <a href="{{link_pago}}" class="btn-cta-primary">💳 Inscribirme ahora</a>
+                    
+                    <!-- Reemplaza {{link_diagnostico}} con tu enlace real del diagnóstico -->
+                    <a href="{{link_diagnostico}}" class="btn-cta-secondary">📝 Quiero un diagnóstico</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- PIE DE PÁGINA -->
+        <div class="footer-note">
+            ⏱️ La sesión finaliza automáticamente · No se puede pausar ni adelantar
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // --- Elementos DOM ---
+            const video = document.getElementById('seminarVideo');
+            const joinOverlay = document.getElementById('joinOverlay');
+            const joinBtn = document.getElementById('joinBtn');
+            const viewerEl = document.getElementById('viewerCount');
+            const ctaOverlay = document.getElementById('ctaOverlay');
+
+            // --- Estado ---
+            let isJoined = false;
+            let videoStarted = false;
+            let videoEnded = false;
+            let ctaShown = false;
+            let animationFrame = null;
+            let startTime = null;
+            let elapsedSeconds = 0;
+
+            // --- CONSTANTES DE TIEMPO ---
+            const VIDEO_DURATION = 30 * 60; // Asumimos 30 mins máximo, se ajustará al video real
+            const CTA_TIME = 13 * 60 + 12;  // 13 minutos y 12 segundos (792 segundos)
+
+            // --- LÓGICA DE ESPECTADORES ---
+            // Requisitos:
+            // - Inicio: 130
+            // - Sube hasta min 8: max 210
+            // - Se mantiene (con fluctuación) hasta min 12:39 (759 seg)
+            // - Baja progresivamente hasta min 15:00 (900 seg): llega a 10
+            // - Al minuto 20 (1200 seg): tener 1
+            function getViewerCount(seconds) {
+                if (seconds <= 0) return 130;
+
+                const MIN_8 = 8 * 60;       // 480 seg
+                const MIN_12_39 = 12 * 60 + 39; // 759 seg
+                const MIN_15 = 15 * 60;     // 900 seg
+                const MIN_20 = 20 * 60;     // 1200 seg
+
+                // Fase 1: Subida (0 a 8 min) -> 130 a 210
+                if (seconds <= MIN_8) {
+                    const progress = seconds / MIN_8;
+                    return Math.round(130 + progress * (210 - 130));
+                }
+
+                // Fase 2: Mantenerse (8 min a 12:39) -> Fluctuar alrededor de 210
+                if (seconds <= MIN_12_39) {
+                    const wave = Math.sin(seconds / 10) * 4 + Math.cos(seconds / 25) * 3;
+                    return Math.round(210 + wave);
+                }
+
+                // Fase 3: Bajada (12:39 a 15:00) -> 210 a 10
+                if (seconds <= MIN_15) {
+                    const progress = (seconds - MIN_12_39) / (MIN_15 - MIN_12_39);
+                    return Math.round(210 - progress * (210 - 10));
+                }
+
+                // Fase 4: Caída final (15:00 a 20:00) -> 10 a 1
+                if (seconds <= MIN_20) {
+                    const progress = (seconds - MIN_15) / (MIN_20 - MIN_15);
+                    return Math.round(10 - progress * (10 - 1));
+                }
+
+                // Después del minuto 20
+                return 1;
+            }
+
+            function updateViewerCount(seconds) {
+                const count = getViewerCount(seconds);
+                viewerEl.textContent = count;
+            }
+
+            // --- LOOP PRINCIPAL ---
+            function syncLoop() {
+                if (!videoStarted || videoEnded) return;
+
+                const now = performance.now();
+                const delta = (now - startTime) / 1000;
+                elapsedSeconds = Math.min(delta, VIDEO_DURATION);
+
+                // Actualizar espectadores
+                updateViewerCount(elapsedSeconds);
+
+                // Verificar si es momento del CTA (13:12)
+                if (elapsedSeconds >= CTA_TIME && !ctaShown) {
+                    showCTA();
+                    return; // Detener el loop mientras se muestra el CTA
+                }
+
+                if (elapsedSeconds >= VIDEO_DURATION) {
+                    finishSession();
+                    return;
+                }
+
+                animationFrame = requestAnimationFrame(syncLoop);
+            }
+
+            // --- MOSTRAR CTA (Minuto 13:12) ---
+            function showCTA() {
+                ctaShown = true;
+                video.pause(); // Pausar el video para que el usuario tome una decisión
+                ctaOverlay.style.display = 'flex';
+                
+                if (animationFrame) cancelAnimationFrame(animationFrame);
+            }
+
+            // --- INICIAR SESIÓN ---
+            function startSession() {
+                if (isJoined) return;
+
+                isJoined = true;
+                joinOverlay.classList.add('hidden');
+
+                // Reproducir video
+                video.muted = false;
+                video.currentTime = 0;
+
+                const playPromise = video.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        videoStarted = true;
+                        startTime = performance.now();
+                        animationFrame = requestAnimationFrame(syncLoop);
+                        updateViewerCount(0);
+                    }).catch(err => {
+                        console.warn('Error al reproducir con sonido, reintentando muted:', err);
+                        video.muted = true;
+                        video.play().then(() => {
+                            video.muted = false;
+                            videoStarted = true;
+                            startTime = performance.now();
+                            animationFrame = requestAnimationFrame(syncLoop);
+                            updateViewerCount(0);
+                        }).catch(e => {
+                            alert('No se pudo iniciar el video. Intenta de nuevo.');
+                            isJoined = false;
+                            joinOverlay.classList.remove('hidden');
+                        });
+                    });
+                }
+            }
+
+            // --- FINALIZAR SESIÓN ---
+            function finishSession() {
+                if (videoEnded) return;
+                videoEnded = true;
+                video.pause();
+                
+                // Si no se mostró el CTA, mostrarlo al final
+                if (!ctaShown) {
+                    showCTA();
+                }
+            }
+
+            // --- EVENTOS ---
+            joinBtn.addEventListener('click', startSession);
+
+            // Prevenir pausa accidental
+            video.addEventListener('pause', function() {
+                if (!videoEnded && videoStarted && !ctaShown) {
+                    video.play().catch(() => {});
+                }
+            });
+
+            // Prevenir seek
+            video.addEventListener('seeking', function() {
+                if (!videoEnded && videoStarted && !ctaShown) {
+                    video.currentTime = Math.min(elapsedSeconds, VIDEO_DURATION - 0.5);
+                }
+            });
+
+            // Prevenir menú contextual
+            video.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
+            // Manejar fin de video
+            video.addEventListener('ended', function() {
+                if (!videoEnded) finishSession();
+            });
+
+        })();
+    </script>
+</body>
+</html>
